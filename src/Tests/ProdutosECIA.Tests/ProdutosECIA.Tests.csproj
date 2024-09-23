@@ -25,9 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\API\ProdutosECIA.API\ProdutosECIA.API.csproj" />
-    <ProjectReference Include="..\src\Application\ProdutosECIA.Application\ProdutosECIA.Application.csproj" />
-    <ProjectReference Include="..\src\Infrastructure\ProdutosECIA.Infrastructure\ProdutosECIA.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\API\ProdutosECIA.API\ProdutosECIA.API.csproj" />
+    <ProjectReference Include="..\..\Application\ProdutosECIA.Application\ProdutosECIA.Application.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\ProdutosECIA.Infrastructure\ProdutosECIA.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
