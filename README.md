@@ -1,39 +1,67 @@
 # Produtos e CIA - API de Controle de Estoque
 
-## Sumário
-1. [Descrição do Projeto](#descrição-do-projeto)
+## SumÃ¡rio
+1. [DescriÃ§Ã£o do Projeto](#descriÃ§Ã£o-do-projeto)
 2. [Arquitetura](#arquitetura)
 3. [Tecnologias Utilizadas](#tecnologias-utilizadas)
-4. [Instalação e Configuração](#instalação-e-configuração)
-5. [Autenticação](#autenticação)
+4. [InstalaÃ§Ã£o e ConfiguraÃ§Ã£o](#instalaÃ§Ã£o-e-configuraÃ§Ã£o)
+5. [AutenticaÃ§Ã£o](#autenticaÃ§Ã£o)
 6. [Rotas da API](#rotas-da-api)
-7. [Contribuições](#contribuições)
-8. [Licença](#licença)
+7. [ContribuiÃ§Ãµes](#contribuiÃ§Ãµes)
+8. [LicenÃ§a](#licenÃ§a)
 
-## Descrição do Projeto
-API RESTful desenvolvida para gerenciar o controle de estoque de produtos de diferentes empresas, com funcionalidades de movimentação de produtos, controle de estoque em lote, autenticação JWT, entre outras. O projeto foi desenvolvido utilizando o padrão DDD (Domain-Driven Design), garantindo uma separação clara de responsabilidades e um código escalável.
+## DescriÃ§Ã£o do Projeto
+API RESTful desenvolvida para gerenciar o controle de estoque de produtos de diferentes empresas, com funcionalidades de movimentaÃ§Ã£o de produtos, controle de estoque em lote, autenticaÃ§Ã£o JWT, entre outras. O projeto foi desenvolvido utilizando o padrÃ£o DDD (Domain-Driven Design), garantindo uma separaÃ§Ã£o clara de responsabilidades e um cÃ³digo escalÃ¡vel.
 
 ## Arquitetura
-O projeto está estruturado seguindo o padrão de Domain-Driven Design (DDD) e possui as seguintes camadas:
+O projeto estÃ¡ estruturado seguindo o padrÃ£o de Domain-Driven Design (DDD) e possui as seguintes camadas:
 
-- **Domain**: Contém as entidades e interfaces de repositório, representando o núcleo do sistema.
-- **Application**: Contém os serviços que coordenam as operações de negócio, além dos DTOs e mapeamentos (AutoMapper).
-- **Infrastructure**: Implementa os repositórios e a persistência de dados usando Entity Framework Core e PostgreSQL.
-- **API**: Camada de interface com o usuário, que expõe os endpoints e controla o fluxo das requisições HTTP.
-- **Tests**: Contém a implementação de testes unitários para a API. Utilizamos o xUnit como framework de testes, juntamente com Moq para simulação de dependências, a fim de garantir que os serviços e controladores funcionem conforme o esperado.
+- **Domain**: ContÃ©m as entidades e interfaces de repositÃ³rio, representando o nÃºcleo do sistema.
+- **Application**: ContÃ©m os serviÃ§os que coordenam as operaÃ§Ãµes de negÃ³cio, alÃ©m dos DTOs e mapeamentos (AutoMapper).
+- **Infrastructure**: Implementa os repositÃ³rios e a persistÃªncia de dados usando Entity Framework Core e PostgreSQL.
+- **API**: Camada de interface com o usuÃ¡rio, que expÃµe os endpoints e controla o fluxo das requisiÃ§Ãµes HTTP.
+- **Tests**: ContÃ©m a implementaÃ§Ã£o de testes unitÃ¡rios para a API. Utilizamos o xUnit como framework de testes, juntamente com Moq para simulaÃ§Ã£o de dependÃªncias, a fim de garantir que os serviÃ§os e controladores funcionem conforme o esperado.
 
-### Diagrama de Camadas
+## Diagrama de Camadas
 
-+------------------+ +---------------------+ | Presentation | --> | Application Layer | +------------------+ +---------------------+ | v +--------------------+ +--------------------+ | Domain Layer | --> | Infrastructure | +--------------------+ +--------------------+
+```plaintext
++------------------+
+|   Presentation   |
+|  (Controllers)   |
++------------------+
+         |
+         v
++------------------+
+|   Application    |
+|   (Services)     |
++------------------+
+         |
+         v
++------------------+
+|      Domain      |
+|    (Entities)    |
++------------------+
+         |
+         v
++------------------+
+|  Infrastructure  |
+|  (Repositories)  |
++------------------+
+
+
++------------------+
+|      Tests       |
++------------------+
+```
 
 ## Tecnologias Utilizadas
-- **.NET 8**: Framework principal para a construção da API.
-- **Entity Framework Core 7**: ORM utilizado para o mapeamento e persistência de dados.
-- **PostgreSQL**: Banco de dados relacional utilizado para armazenar as informações.
+- **.NET 8**: Framework principal para a construÃ§Ã£o da API.
+- **Entity Framework Core 7**: ORM utilizado para o mapeamento e persistÃªncia de dados.
+- **PostgreSQL**: Banco de dados relacional utilizado para armazenar as informaÃ§Ãµes.
 - **AutoMapper**: Ferramenta de mapeamento de objetos para transformar entidades em DTOs.
-- **FluentValidation**: Biblioteca para validação de dados de entrada nos DTOs.
-- **JWT (JSON Web Token)**: Autenticação e proteção de rotas.
-- **Swagger**: Ferramenta para documentação da API e teste das rotas.
-- **xUnit**: Framework para realizar testes unitários.
-- **Moq**: Utilizado nos testes unitários, para simulação de dependências.
+- **FluentValidation**: Biblioteca para validaÃ§Ã£o de dados de entrada nos DTOs.
+- **JWT (JSON Web Token)**: AutenticaÃ§Ã£o e proteÃ§Ã£o de rotas.
+- **Swagger**: Ferramenta para documentaÃ§Ã£o da API e teste das rotas.
+- **xUnit**: Framework para realizar testes unitÃ¡rios.
+- **Moq**: Utilizado nos testes unitÃ¡rios, para simulaÃ§Ã£o de dependÃªncias.
 
