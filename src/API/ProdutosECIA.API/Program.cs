@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ProdutosECIA.API.IoC;
+using ProdutosECIA.API.Middlewares;
 using ProdutosECIA.Application.Mappings;
 using ProdutosECIA.Application.Settings;
 using ProdutosECIA.Infrastructure.DataContext;
@@ -90,6 +91,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
