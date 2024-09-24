@@ -7,7 +7,7 @@
 4. [Tecnologias Utilizadas](#tecnologias-utilizadas)
 
 ## Descrição do Projeto
-API RESTful desenvolvida para gerenciar o controle de estoque de produtos de diferentes empresas, com funcionalidades de movimentação de produtos, controle de estoque em lote, autenticação JWT, entre outras. O projeto foi desenvolvido utilizando o padrão DDD (Domain-Driven Design), garantindo uma separação clara de responsabilidades e um código escalável.
+API RESTful desenvolvida para gerenciar o controle de estoque de produtos de diferentes empresas, com funcionalidades de movimentação de produtos, controle de estoque em lote, autenticação JWT, entre outras. O projeto foi desenvolvido utilizando o padrão DDD (Domain-Driven Design), garantindo uma separação clara de responsabilidades e um código escalável. Também foi utilizado o conceito de Repositório Genérico, promovendo assim o reuso de código.
 
 ## Arquitetura
 O projeto está estruturado seguindo o padrão de Domain-Driven Design (DDD) e possui as seguintes camadas:
