@@ -3,12 +3,8 @@
 ## Sumário
 1. [Descrição do Projeto](#descrição-do-projeto)
 2. [Arquitetura](#arquitetura)
-3. [Tecnologias Utilizadas](#tecnologias-utilizadas)
-4. [Instalação e Configuração](#instalação-e-configuração)
-5. [Autenticação](#autenticação)
-6. [Rotas da API](#rotas-da-api)
-7. [Contribuições](#contribuições)
-8. [Licença](#licença)
+3. [Diagrama de Camadas](#diagrama-de-camadas)
+4. [Tecnologias Utilizadas](#tecnologias-utilizadas)
 
 ## Descrição do Projeto
 API RESTful desenvolvida para gerenciar o controle de estoque de produtos de diferentes empresas, com funcionalidades de movimentação de produtos, controle de estoque em lote, autenticação JWT, entre outras. O projeto foi desenvolvido utilizando o padrão DDD (Domain-Driven Design), garantindo uma separação clara de responsabilidades e um código escalável.
