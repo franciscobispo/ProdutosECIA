@@ -1,6 +1,6 @@
 ﻿using ProdutosECIA.Application.DTOs;
 
-namespace ProdutosECIA.Application.Interfaces;
+namespace ProdutosECIA.Application.Services.Interfaces;
 
 public interface IProdutoService
 {
@@ -12,7 +12,8 @@ public interface IProdutoService
     Task<bool> MovimentarProdutoAsync(Guid produtoId, MovimentacaoProdutoDto movimentacaoDto);
     Task<bool> MovimentarProdutosEmLoteAsync(MovimentacaoLoteDto movimentacaoLoteDto);
     Task<decimal> ObterValorTotalEstoqueAsync();
-    Task<int> ObterQuantidadeTotalEstoqueAsync();
+    Task<int> ObterQuantidadeTotalProdutoAsync(Guid produtoId, Guid empresaId);
     Task<decimal> ObterCustoMedioProdutoAsync(Guid produtoId);
     Task<decimal> ObterCustoMedioEstoqueAsync();
+    Task<bool> TransferirProdutoAsync(Guid produtoId, Guid deEmpresaId, Guid paraEmpresaId, int quantidade);
 }

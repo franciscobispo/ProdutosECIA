@@ -6,5 +6,5 @@ public class ProdutoDto
     public string Nome { get; set; }
     public decimal PrecoCusto { get; set; }
     public decimal PrecoVenda { get; set; }
-    public int Quantidade { get; set; }
+    //public int Quantidade { get; set; }
 }

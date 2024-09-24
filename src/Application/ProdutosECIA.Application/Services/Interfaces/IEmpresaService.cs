@@ -1,6 +1,6 @@
 ﻿using ProdutosECIA.Application.DTOs;
 
-namespace ProdutosECIA.Application.Interfaces;
+namespace ProdutosECIA.Application.Services.Interfaces;
 
 public interface IEmpresaService
 {

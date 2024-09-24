@@ -29,7 +29,6 @@ if (authSettings == null || string.IsNullOrEmpty(authSettings.Secret))
     throw new InvalidOperationException("A configuração AuthSettings ou o valor de Secret não foram encontrados.");
 }
 
-
 var key = Encoding.ASCII.GetBytes(authSettings.Secret);
 
 builder.Services.AddAuthentication(options =>
@@ -54,6 +53,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ProdutosECIA API", Version = "v1" });
+    c.EnableAnnotations();
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -88,7 +88,6 @@ builder.Services.AddValidators();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 

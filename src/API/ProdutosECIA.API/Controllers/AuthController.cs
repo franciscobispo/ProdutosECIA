@@ -1,11 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Settings;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using ProdutosECIA.Application.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ProdutosECIA.API.Controllers;
 
@@ -13,38 +10,32 @@ namespace ProdutosECIA.API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly AuthSettings _authSettings;
+    private readonly IAuthService _authService;
 
-    public AuthController(IOptions<AuthSettings> authSettings)
+    public AuthController(IAuthService authService)
     {
-        _authSettings = authSettings.Value;
+        _authService = authService;
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginDto loginDto)
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
     {
-        // Aqui seria feito a verificação do usuário
-        if (loginDto.Username == "admin" && loginDto.Password == "password")
-        {
-            // Criação do token JWT
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(_authSettings.Secret);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.Name, "admin"),
-                    new Claim(ClaimTypes.Role, "Admin")
-                }),
-                Expires = DateTime.UtcNow.AddHours(1),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+        var token = await _authService.LoginAsync(loginDto);
 
-            return Ok(new { Token = tokenString });
+        if (string.IsNullOrEmpty(token))
+        {
+            return Unauthorized();
         }
 
-        return Unauthorized();
+        return Ok(new { Token = token });
+    }
+
+    [HttpPost("register")]
+    [Authorize(Roles = "Admin")]
+    [SwaggerOperation(Summary = "NOTA: Somente usuários administradores podem registrar novos usuários.")]
+    public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+    {
+        await _authService.RegisterAsync(registerDto);
+        return Ok(new { Message = "User registered successfully" });
     }
 }

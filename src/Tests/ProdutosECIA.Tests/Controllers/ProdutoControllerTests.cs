@@ -1,300 +1,384 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using ProdutosECIA.API.Controllers;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 
-namespace ProdutosECIA.Tests.Controllers;
-
-public class ProdutoControllerTests
+namespace ProdutosECIA.Tests
 {
-    private readonly Mock<IProdutoService> _produtoServiceMock;
-    private readonly ProdutoController _produtoController;
-
-    public ProdutoControllerTests()
+    public class ProdutoControllerTests
     {
-        _produtoServiceMock = new Mock<IProdutoService>();
-        _produtoController = new ProdutoController(_produtoServiceMock.Object);
-    }
+        private readonly Mock<IProdutoService> _mockProdutoService;
+        private readonly ProdutoController _produtoController;
 
-    [Fact]
-    public async Task GetAll_ShouldReturnOk_WhenProdutosExist()
-    {
-        // Arrange
-        var produtos = new List<ProdutoDto>
+        public ProdutoControllerTests()
         {
-            new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto 1", Quantidade = 10 },
-            new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto 2", Quantidade = 5 }
-        };
+            _mockProdutoService = new Mock<IProdutoService>();
+            _produtoController = new ProdutoController(_mockProdutoService.Object);
+        }
 
-        _produtoServiceMock.Setup(service => service.GetAllAsync()).ReturnsAsync(produtos);
+        [Fact]
+        public async Task GetAll_ShouldReturnOkResult_WhenProductsExist()
+        {
+            // Arrange
+            var produtos = new List<ProdutoDto>
+            {
+                new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto A" },
+                new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto B" }
+            };
+            _mockProdutoService.Setup(service => service.GetAllAsync())
+                .ReturnsAsync(produtos);
 
-        // Act
-        var result = await _produtoController.GetAll();
+            // Act
+            var result = await _produtoController.GetAll();
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var returnValue = Assert.IsAssignableFrom<IEnumerable<ProdutoDto>>(okResult.Value);
-        Assert.Equal(2, returnValue.Count());
-    }
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult.Value.Should().BeEquivalentTo(produtos);
+        }
 
-    [Fact]
-    public async Task GetById_ShouldReturnOk_WhenProdutoExists()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        var produtoDto = new ProdutoDto { Id = id, Nome = "Produto 1" };
-        _produtoServiceMock.Setup(service => service.GetByIdAsync(id)).ReturnsAsync(produtoDto);
+        [Fact]
+        public async Task GetById_ShouldReturnOkResult_WhenProductExists()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var produto = new ProdutoDto { Id = produtoId, Nome = "Produto A" };
+            _mockProdutoService.Setup(service => service.GetByIdAsync(produtoId))
+                .ReturnsAsync(produto);
 
-        // Act
-        var result = await _produtoController.GetById(id);
+            // Act
+            var result = await _produtoController.GetById(produtoId);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        Assert.Equal(produtoDto, okResult.Value);
-    }
+            // Assert
+            result.Result.Should().BeOfType<OkObjectResult>();
+            var okResult = result.Result as OkObjectResult;
+            okResult.Value.Should().BeEquivalentTo(produto);
+        }
 
-    [Fact]
-    public async Task GetById_ShouldReturnNotFound_WhenProdutoDoesNotExist()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        _produtoServiceMock.Setup(service => service.GetByIdAsync(id)).ReturnsAsync((ProdutoDto)null);
+        [Fact]
+        public async Task GetById_ShouldReturnNotFound_WhenProductDoesNotExist()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            _mockProdutoService.Setup(service => service.GetByIdAsync(produtoId))
+                .ReturnsAsync((ProdutoDto)null);
 
-        // Act
-        var result = await _produtoController.GetById(id);
+            // Act
+            var result = await _produtoController.GetById(produtoId);
 
-        // Assert
-        Assert.IsType<NotFoundResult>(result.Result);
-    }
+            // Assert
+            result.Result.Should().BeOfType<NotFoundResult>();
+        }
 
-    [Fact]
-    public async Task Create_ShouldReturnCreated_WhenProdutoIsCreated()
-    {
-        // Arrange
-        var produtoCreateDto = new ProdutoCreateDto { Nome = "Novo Produto", Quantidade = 10 };
-        var produtoDto = new ProdutoDto { Id = Guid.NewGuid(), Nome = "Novo Produto", Quantidade = 10 };
+        [Fact]
+        public async Task Create_ShouldReturnCreatedAtActionResult_WhenProductIsCreated()
+        {
+            // Arrange
+            var produtoCreateDto = new ProdutoCreateDto { Nome = "Produto A" };
+            var createdProduto = new ProdutoDto { Id = Guid.NewGuid(), Nome = "Produto A" };
+            _mockProdutoService.Setup(service => service.CreateAsync(produtoCreateDto))
+                .ReturnsAsync(createdProduto);
 
-        _produtoServiceMock.Setup(service => service.CreateAsync(produtoCreateDto)).ReturnsAsync(produtoDto);
+            // Act
+            var result = await _produtoController.Create(produtoCreateDto);
 
-        // Act
-        var result = await _produtoController.Create(produtoCreateDto);
+            // Assert
+            result.Result.Should().BeOfType<CreatedAtActionResult>();
+            var createdAtResult = result.Result as CreatedAtActionResult;
+            createdAtResult.ActionName.Should().Be("GetById");
+            createdAtResult.RouteValues["id"].Should().Be(createdProduto.Id);
+            createdAtResult.Value.Should().BeEquivalentTo(createdProduto);
+        }
 
-        // Assert
-        var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
-        Assert.Equal("GetById", createdResult.ActionName);
-        Assert.Equal(produtoDto.Id, createdResult.RouteValues["id"]);
-        Assert.Equal(produtoDto, createdResult.Value);
-    }
+        [Fact]
+        public async Task Create_ShouldReturnBadRequest_WhenModelStateIsInvalid()
+        {
+            // Arrange
+            _produtoController.ModelState.AddModelError("Nome", "Nome é obrigatório");
 
-    [Fact]
-    public async Task Create_ShouldReturnBadRequest_WhenModelStateIsInvalid()
-    {
-        // Arrange
-        var produtoCreateDto = new ProdutoCreateDto();
-        _produtoController.ModelState.AddModelError("Nome", "O nome é obrigatório.");
+            var produtoCreateDto = new ProdutoCreateDto();
 
-        // Act
-        var result = await _produtoController.Create(produtoCreateDto);
+            // Act
+            var result = await _produtoController.Create(produtoCreateDto);
 
-        // Assert
-        Assert.IsType<BadRequestObjectResult>(result.Result);
-    }
+            // Assert
+            result.Result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result.Result as BadRequestObjectResult;
+            var serializableError = badRequestResult.Value as SerializableError;
+            serializableError.Should().ContainKey("Nome");
+            serializableError["Nome"].Should().BeOfType<string[]>().Which.Should().Contain("Nome é obrigatório");
+        }
 
-    [Fact]
-    public async Task Update_ShouldReturnNoContent_WhenProdutoIsUpdated()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        var produtoUpdateDto = new ProdutoUpdateDto { Nome = "Produto Atualizado" };
-        _produtoServiceMock.Setup(service => service.UpdateAsync(id, produtoUpdateDto)).ReturnsAsync(true);
+        [Fact]
+        public async Task Update_ShouldReturnNoContent_WhenProductIsUpdated()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var produtoUpdateDto = new ProdutoUpdateDto { Nome = "Produto Atualizado" };
 
-        // Act
-        var result = await _produtoController.Update(id, produtoUpdateDto);
+            _mockProdutoService.Setup(service => service.UpdateAsync(produtoId, produtoUpdateDto))
+                .ReturnsAsync(true);
 
-        // Assert
-        Assert.IsType<NoContentResult>(result);
-    }
+            // Act
+            var result = await _produtoController.Update(produtoId, produtoUpdateDto);
 
-    [Fact]
-    public async Task Update_ShouldReturnNotFound_WhenProdutoDoesNotExist()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        var produtoUpdateDto = new ProdutoUpdateDto { Nome = "Produto Atualizado" };
-        _produtoServiceMock.Setup(service => service.UpdateAsync(id, produtoUpdateDto)).ReturnsAsync(false);
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+        }
 
-        // Act
-        var result = await _produtoController.Update(id, produtoUpdateDto);
+        [Fact]
+        public async Task Update_ShouldReturnNotFound_WhenProductDoesNotExist()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var produtoUpdateDto = new ProdutoUpdateDto { Nome = "Produto Atualizado" };
 
-        // Assert
-        Assert.IsType<NotFoundResult>(result);
-    }
+            _mockProdutoService.Setup(service => service.UpdateAsync(produtoId, produtoUpdateDto))
+                .ReturnsAsync(false);
 
-    [Fact]
-    public async Task Delete_ShouldReturnNoContent_WhenProdutoIsDeleted()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        _produtoServiceMock.Setup(service => service.DeleteAsync(id)).ReturnsAsync(true);
+            // Act
+            var result = await _produtoController.Update(produtoId, produtoUpdateDto);
 
-        // Act
-        var result = await _produtoController.Delete(id);
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
 
-        // Assert
-        Assert.IsType<NoContentResult>(result);
-    }
+        [Fact]
+        public async Task Delete_ShouldReturnNoContent_WhenProductIsDeleted()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            _mockProdutoService.Setup(service => service.DeleteAsync(produtoId))
+                .ReturnsAsync(true);
 
-    [Fact]
-    public async Task Delete_ShouldReturnNotFound_WhenProdutoDoesNotExist()
-    {
-        // Arrange
-        var id = Guid.NewGuid();
-        _produtoServiceMock.Setup(service => service.DeleteAsync(id)).ReturnsAsync(false);
+            // Act
+            var result = await _produtoController.Delete(produtoId);
 
-        // Act
-        var result = await _produtoController.Delete(id);
+            // Assert
+            result.Should().BeOfType<NoContentResult>();
+        }
 
-        // Assert
-        Assert.IsType<NotFoundResult>(result);
-    }
+        [Fact]
+        public async Task Delete_ShouldReturnNotFound_WhenProductDoesNotExist()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            _mockProdutoService.Setup(service => service.DeleteAsync(produtoId))
+                .ReturnsAsync(false);
 
-    [Fact]
-    public async Task MovimentarProdutoAsync_ShouldReturnOk_WhenMovimentacaoIsSuccessful()
-    {
-        // Arrange
-        var produtoId = Guid.NewGuid();
-        var movimentacaoDto = new MovimentacaoProdutoDto { Adicionar = true, Quantidade = 5 };
-        _produtoServiceMock.Setup(service => service.MovimentarProdutoAsync(produtoId, movimentacaoDto)).ReturnsAsync(true);
+            // Act
+            var result = await _produtoController.Delete(produtoId);
 
-        // Act
-        var result = await _produtoController.MovimentarProdutoAsync(produtoId, movimentacaoDto);
+            // Assert
+            result.Should().BeOfType<NotFoundResult>();
+        }
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("Movimentação realizada com sucesso.", okResult.Value);
-    }
+        [Fact]
+        public async Task MovimentarProduto_ShouldReturnOk_WhenMovimentacaoIsSuccessful()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var movimentacaoDto = new MovimentacaoProdutoDto { Quantidade = 10 };
 
-    [Fact]
-    public async Task MovimentarProdutoAsync_ShouldReturnBadRequest_WhenMovimentacaoFails()
-    {
-        // Arrange
-        var produtoId = Guid.NewGuid();
-        var movimentacaoDto = new MovimentacaoProdutoDto { Adicionar = true, Quantidade = 5 };
-        _produtoServiceMock.Setup(service => service.MovimentarProdutoAsync(produtoId, movimentacaoDto)).ReturnsAsync(false);
+            _mockProdutoService.Setup(service => service.MovimentarProdutoAsync(produtoId, movimentacaoDto))
+                .ReturnsAsync(true);
 
-        // Act
-        var result = await _produtoController.MovimentarProdutoAsync(produtoId, movimentacaoDto);
+            // Act
+            var result = await _produtoController.MovimentarProdutoAsync(produtoId, movimentacaoDto);
 
-        // Assert
-        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Erro ao movimentar o produto.", badRequestResult.Value);
-    }
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+        }
 
-    [Fact]
-    public async Task MovimentarProdutosEmLoteAsync_ShouldReturnOk_WhenMovimentacaoEmLoteIsSuccessful()
-    {
-        // Arrange
-        var movimentacaoLoteDto = new MovimentacaoLoteDto { Adicionar = true, Quantidade = 5, ProdutoIds = new List<Guid> { Guid.NewGuid() } };
-        _produtoServiceMock.Setup(service => service.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto)).ReturnsAsync(true);
+        [Fact]
+        public async Task MovimentarProduto_ShouldReturnBadRequest_WhenMovimentacaoFails()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var movimentacaoDto = new MovimentacaoProdutoDto { Quantidade = 10 };
 
-        // Act
-        var result = await _produtoController.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto);
+            _mockProdutoService.Setup(service => service.MovimentarProdutoAsync(produtoId, movimentacaoDto))
+                .ReturnsAsync(false);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("Movimentação em lote realizada com sucesso.", okResult.Value);
-    }
+            // Act
+            var result = await _produtoController.MovimentarProdutoAsync(produtoId, movimentacaoDto);
 
-    [Fact]
-    public async Task MovimentarProdutosEmLoteAsync_ShouldReturnBadRequest_WhenMovimentacaoEmLoteFails()
-    {
-        // Arrange
-        var movimentacaoLoteDto = new MovimentacaoLoteDto { Adicionar = true, Quantidade = 5, ProdutoIds = new List<Guid> { Guid.NewGuid() } };
-        _produtoServiceMock.Setup(service => service.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto)).ReturnsAsync(false);
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result as BadRequestObjectResult;
+            badRequestResult.Value.Should().Be("Erro ao movimentar o produto.");
+        }
 
-        // Act
-        var result = await _produtoController.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto);
+        [Fact]
+        public async Task MovimentarProdutosEmLoteAsync_ShouldReturnOk_WhenSuccessful()
+        {
+            // Arrange
+            var movimentacaoLoteDto = new MovimentacaoLoteDto { };
+            _mockProdutoService.Setup(x => x.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto)).ReturnsAsync(true);
 
-        // Assert
-        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Erro ao movimentar produtos.", badRequestResult.Value);
-    }
+            // Act
+            var result = await _produtoController.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto);
 
-    [Fact]
-    public async Task ObterValorTotalEstoqueAsync_ShouldReturnOk_WhenCalled()
-    {
-        // Arrange
-        var valorTotal = 1000.00m;
-        _produtoServiceMock.Setup(service => service.ObterValorTotalEstoqueAsync()).ReturnsAsync(valorTotal);
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be("Movimentação em lote realizada com sucesso.");
+        }
 
-        // Act
-        var result = await _produtoController.ObterValorTotalEstoqueAsync();
+        [Fact]
+        public async Task MovimentarProdutosEmLoteAsync_ShouldReturnBadRequest_WhenFails()
+        {
+            // Arrange
+            var movimentacaoLoteDto = new MovimentacaoLoteDto { };
+            _mockProdutoService.Setup(x => x.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto)).ReturnsAsync(false);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(valorTotal, okResult.Value);
-    }
+            // Act
+            var result = await _produtoController.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto);
 
-    [Fact]
-    public async Task ObterQuantidadeTotalEstoqueAsync_ShouldReturnOk_WhenCalled()
-    {
-        // Arrange
-        var quantidadeTotal = 50;
-        _produtoServiceMock.Setup(service => service.ObterQuantidadeTotalEstoqueAsync()).ReturnsAsync(quantidadeTotal);
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result as BadRequestObjectResult;
+            badRequestResult.Value.Should().Be("Erro ao movimentar produtos.");
+        }
 
-        // Act
-        var result = await _produtoController.ObterQuantidadeTotalEstoqueAsync();
+        [Fact]
+        public async Task ObterValorTotalEstoqueAsync_ShouldReturnOk_WithValorTotal()
+        {
+            // Arrange
+            var valorTotal = 1000m;
+            _mockProdutoService.Setup(x => x.ObterValorTotalEstoqueAsync()).ReturnsAsync(valorTotal);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(quantidadeTotal, okResult.Value);
-    }
+            // Act
+            var result = await _produtoController.ObterValorTotalEstoqueAsync();
 
-    [Fact]
-    public async Task ObterCustoMedioProdutoAsync_ShouldReturnOk_WhenProdutoExists()
-    {
-        // Arrange
-        var produtoId = Guid.NewGuid();
-        var custoMedio = 200.00m;
-        _produtoServiceMock.Setup(service => service.ObterCustoMedioProdutoAsync(produtoId)).ReturnsAsync(custoMedio);
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be(valorTotal);
+        }
 
-        // Act
-        var result = await _produtoController.ObterCustoMedioProdutoAsync(produtoId);
+        [Fact]
+        public async Task ObterQuantidadeTotalProdutoAsync_ShouldReturnOk_WhenQuantidadeIsGreaterThanZero()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var empresaId = Guid.NewGuid();
+            var quantidadeTotal = 10;
+            _mockProdutoService.Setup(x => x.ObterQuantidadeTotalProdutoAsync(produtoId, empresaId)).ReturnsAsync(quantidadeTotal);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(custoMedio, okResult.Value);
-    }
+            // Act
+            var result = await _produtoController.ObterQuantidadeTotalProdutoAsync(produtoId, empresaId);
 
-    [Fact]
-    public async Task ObterCustoMedioProdutoAsync_ShouldReturnNotFound_WhenProdutoDoesNotExist()
-    {
-        // Arrange
-        var produtoId = Guid.NewGuid();
-        _produtoServiceMock.Setup(service => service.ObterCustoMedioProdutoAsync(produtoId)).ReturnsAsync(0);
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be(quantidadeTotal);
+        }
 
-        // Act
-        var result = await _produtoController.ObterCustoMedioProdutoAsync(produtoId);
+        [Fact]
+        public async Task ObterQuantidadeTotalProdutoAsync_ShouldReturnNotFound_WhenQuantidadeIsZero()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var empresaId = Guid.NewGuid();
+            _mockProdutoService.Setup(x => x.ObterQuantidadeTotalProdutoAsync(produtoId, empresaId)).ReturnsAsync(0);
 
-        // Assert
-        var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
-        Assert.Equal($"Produto com o Id {produtoId} não foi encontrado.", notFoundResult.Value);
-    }
+            // Act
+            var result = await _produtoController.ObterQuantidadeTotalProdutoAsync(produtoId, empresaId);
 
-    [Fact]
-    public async Task ObterCustoMedioEstoqueAsync_ShouldReturnOk_WhenCalled()
-    {
-        // Arrange
-        var custoMedio = 150.00m;
-        _produtoServiceMock.Setup(service => service.ObterCustoMedioEstoqueAsync()).ReturnsAsync(custoMedio);
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFoundResult = result as NotFoundObjectResult;
+            notFoundResult.Value.Should().Be($"Estoque não encontrado para o Produto com o Id {produtoId} na Empresa {empresaId}.");
+        }
 
-        // Act
-        var result = await _produtoController.ObterCustoMedioEstoqueAsync();
+        [Fact]
+        public async Task ObterCustoMedioProdutoAsync_ShouldReturnOk_WithCustoMedio()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var custoMedio = 20.5m;
+            _mockProdutoService.Setup(x => x.ObterCustoMedioProdutoAsync(produtoId)).ReturnsAsync(custoMedio);
 
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(custoMedio, okResult.Value);
+            // Act
+            var result = await _produtoController.ObterCustoMedioProdutoAsync(produtoId);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be(custoMedio);
+        }
+
+        [Fact]
+        public async Task ObterCustoMedioProdutoAsync_ShouldReturnNotFound_WhenCustoMedioIsZero()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            _mockProdutoService.Setup(x => x.ObterCustoMedioProdutoAsync(produtoId)).ReturnsAsync(0m);
+
+            // Act
+            var result = await _produtoController.ObterCustoMedioProdutoAsync(produtoId);
+
+            // Assert
+            result.Should().BeOfType<NotFoundObjectResult>();
+            var notFoundResult = result as NotFoundObjectResult;
+            notFoundResult.Value.Should().Be($"Produto com o Id {produtoId} não foi encontrado.");
+        }
+
+        [Fact]
+        public async Task ObterCustoMedioEstoqueAsync_ShouldReturnOk_WithCustoMedioEstoque()
+        {
+            // Arrange
+            var custoMedioEstoque = 15m;
+            _mockProdutoService.Setup(x => x.ObterCustoMedioEstoqueAsync()).ReturnsAsync(custoMedioEstoque);
+
+            // Act
+            var result = await _produtoController.ObterCustoMedioEstoqueAsync();
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be(custoMedioEstoque);
+        }
+
+        [Fact]
+        public async Task TransferirProdutoAsync_ShouldReturnOk_WhenTransferIsSuccessful()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var deEmpresaId = Guid.NewGuid();
+            var paraEmpresaId = Guid.NewGuid();
+            var quantidade = 5;
+            _mockProdutoService.Setup(x => x.TransferirProdutoAsync(produtoId, deEmpresaId, paraEmpresaId, quantidade)).ReturnsAsync(true);
+
+            // Act
+            var result = await _produtoController.TransferirProdutoAsync(produtoId, deEmpresaId, paraEmpresaId, quantidade);
+
+            // Assert
+            result.Should().BeOfType<OkObjectResult>();
+            var okResult = result as OkObjectResult;
+            okResult.Value.Should().Be("Transferência realizada com sucesso.");
+        }
+
+        [Fact]
+        public async Task TransferirProdutoAsync_ShouldReturnBadRequest_WhenTransferFails()
+        {
+            // Arrange
+            var produtoId = Guid.NewGuid();
+            var deEmpresaId = Guid.NewGuid();
+            var paraEmpresaId = Guid.NewGuid();
+            var quantidade = 5;
+            _mockProdutoService.Setup(x => x.TransferirProdutoAsync(produtoId, deEmpresaId, paraEmpresaId, quantidade)).ReturnsAsync(false);
+
+            // Act
+            var result = await _produtoController.TransferirProdutoAsync(produtoId, deEmpresaId, paraEmpresaId, quantidade);
+
+            // Assert
+            result.Should().BeOfType<BadRequestObjectResult>();
+            var badRequestResult = result as BadRequestObjectResult;
+            badRequestResult.Value.Should().Be("Erro ao transferir o produto.");
+        }
     }
 }
-

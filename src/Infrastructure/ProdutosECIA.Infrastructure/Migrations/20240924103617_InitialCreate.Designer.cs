@@ -12,7 +12,7 @@ using ProdutosECIA.Infrastructure.DataContext;
 namespace ProdutosECIA.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240921162604_InitialCreate")]
+    [Migration("20240924103617_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -44,14 +44,14 @@ namespace ProdutosECIA.Infrastructure.Migrations
                     b.ToTable("Empresas");
                 });
 
-            modelBuilder.Entity("ProdutosECIA.Domain.Entities.Movimentacao", b =>
+            modelBuilder.Entity("ProdutosECIA.Domain.Entities.EstoqueProduto", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("DataMovimentacao")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<Guid>("EmpresaId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("ProdutoId")
                         .HasColumnType("uuid");
@@ -59,23 +59,19 @@ namespace ProdutosECIA.Infrastructure.Migrations
                     b.Property<int>("Quantidade")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Tipo")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
 
                     b.HasIndex("ProdutoId");
 
-                    b.ToTable("Movimentacoes");
+                    b.ToTable("EstoqueProdutos");
                 });
 
             modelBuilder.Entity("ProdutosECIA.Domain.Entities.Produto", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("EmpresaId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Nome")
@@ -88,41 +84,65 @@ namespace ProdutosECIA.Infrastructure.Migrations
                     b.Property<decimal>("PrecoVenda")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("Quantidade")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("EmpresaId");
 
                     b.ToTable("Produtos");
                 });
 
-            modelBuilder.Entity("ProdutosECIA.Domain.Entities.Movimentacao", b =>
+            modelBuilder.Entity("ProdutosECIA.Domain.Entities.Usuario", b =>
                 {
-                    b.HasOne("ProdutosECIA.Domain.Entities.Produto", "Produto")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Usuarios");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("837ac8be-00ef-4fd5-aa8f-1f99f3311778"),
+                            PasswordHash = "$2a$11$7Db1nrR8pnyE6EJJDHpoSOloAZrhCUr0qgqCuJcNJW3IoexKWu0HO",
+                            Role = "Admin",
+                            Username = "admin"
+                        });
+                });
+
+            modelBuilder.Entity("ProdutosECIA.Domain.Entities.EstoqueProduto", b =>
+                {
+                    b.HasOne("ProdutosECIA.Domain.Entities.Empresa", "Empresa")
                         .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProdutosECIA.Domain.Entities.Produto", "Produto")
+                        .WithMany("Estoques")
                         .HasForeignKey("ProdutoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Empresa");
 
                     b.Navigation("Produto");
                 });
 
             modelBuilder.Entity("ProdutosECIA.Domain.Entities.Produto", b =>
                 {
-                    b.HasOne("ProdutosECIA.Domain.Entities.Empresa", "Empresa")
-                        .WithMany("Produtos")
-                        .HasForeignKey("EmpresaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Empresa");
-                });
-
-            modelBuilder.Entity("ProdutosECIA.Domain.Entities.Empresa", b =>
-                {
-                    b.Navigation("Produtos");
+                    b.Navigation("Estoques");
                 });
 #pragma warning restore 612, 618
         }

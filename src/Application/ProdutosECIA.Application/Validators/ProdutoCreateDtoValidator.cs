@@ -17,9 +17,6 @@ public class ProdutoCreateDtoValidator : AbstractValidator<ProdutoCreateDto>
         RuleFor(p => p.PrecoVenda)
             .GreaterThan(0).WithMessage("O preço de venda deve ser maior que zero.");
 
-        RuleFor(p => p.Quantidade)
-            .GreaterThanOrEqualTo(0).WithMessage("A quantidade deve ser maior ou igual a zero.");
-
         RuleFor(p => p.EmpresaId)
             .NotEmpty().WithMessage("O ID da empresa é obrigatório.");
     }

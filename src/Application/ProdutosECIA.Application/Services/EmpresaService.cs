@@ -1,8 +1,7 @@
 ﻿using AutoMapper;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 using ProdutosECIA.Domain.Entities;
-using ProdutosECIA.Infrastructure.Repositories;
 using ProdutosECIA.Infrastructure.Repositories.Interfaces;
 
 namespace ProdutosECIA.Application.Services;

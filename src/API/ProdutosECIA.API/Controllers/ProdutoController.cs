@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace ProdutosECIA.API.Controllers;
 
@@ -82,6 +83,7 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpPost("{produtoId}/movimentar")]
+    [SwaggerOperation(Summary = "Cria/Adiciona/Remove quantidade no estoque de um produto de uma empresa.")]
     public async Task<IActionResult> MovimentarProdutoAsync(Guid produtoId, [FromBody] MovimentacaoProdutoDto movimentacaoDto)
     {
         var resultado = await _produtoService.MovimentarProdutoAsync(produtoId, movimentacaoDto);
@@ -93,6 +95,7 @@ public class ProdutoController : ControllerBase
     }
 
     [HttpPost("movimentar/lote")]
+    [SwaggerOperation(Summary = "Adiciona/Remove em lote a quantidade no estoque de um produto de uma empresa.")]
     public async Task<IActionResult> MovimentarProdutosEmLoteAsync([FromBody] MovimentacaoLoteDto movimentacaoLoteDto)
     {
         var resultado = await _produtoService.MovimentarProdutosEmLoteAsync(movimentacaoLoteDto);
@@ -103,24 +106,30 @@ public class ProdutoController : ControllerBase
         return Ok("Movimentação em lote realizada com sucesso.");
     }
 
-    // Consulta o valor total do estoque
     [HttpGet("estoque/valor-total")]
+    [SwaggerOperation(Summary = "Consulta o valor total do estoque ((PrecoCusto * e.Quantidade) de todos os Produtos cadastrados).")]
     public async Task<IActionResult> ObterValorTotalEstoqueAsync()
     {
         var valorTotal = await _produtoService.ObterValorTotalEstoqueAsync();
         return Ok(valorTotal);
     }
 
-    // Consulta a quantidade total de produtos no estoque
-    [HttpGet("estoque/quantidade-total")]
-    public async Task<IActionResult> ObterQuantidadeTotalEstoqueAsync()
+    [HttpGet("{produtoId}/empresa/{empresaId}/quantidade-total")]
+    [SwaggerOperation(Summary = "Consulta a quantidade total de produtos no estoque de uma Empresa.")]
+    public async Task<IActionResult> ObterQuantidadeTotalProdutoAsync(Guid produtoId, Guid empresaId)
     {
-        var quantidadeTotal = await _produtoService.ObterQuantidadeTotalEstoqueAsync();
+        var quantidadeTotal = await _produtoService.ObterQuantidadeTotalProdutoAsync(produtoId, empresaId);
+
+        if (quantidadeTotal == 0)
+        {
+            return NotFound($"Estoque não encontrado para o Produto com o Id {produtoId} na Empresa {empresaId}.");
+        }
+
         return Ok(quantidadeTotal);
     }
 
-    // Consulta o custo médio de um produto específico
     [HttpGet("{produtoId}/custo-medio")]
+    [SwaggerOperation(Summary = "Consulta o custo médio de um produto específico.")]
     public async Task<IActionResult> ObterCustoMedioProdutoAsync(Guid produtoId)
     {
         var custoMedio = await _produtoService.ObterCustoMedioProdutoAsync(produtoId);
@@ -133,12 +142,24 @@ public class ProdutoController : ControllerBase
         return Ok(custoMedio);
     }
 
-    // Consulta o custo médio do estoque
     [HttpGet("estoque/custo-medio")]
+    [SwaggerOperation(Summary = "Consulta o custo médio do estoque.")]
     public async Task<IActionResult> ObterCustoMedioEstoqueAsync()
     {
         var custoMedio = await _produtoService.ObterCustoMedioEstoqueAsync();
         return Ok(custoMedio);
+    }
+
+    [HttpPost("{produtoId}/transferir")]
+    [SwaggerOperation(Summary = "Transfere de uma empresa para outra, uma quantidade de um produto específico.")]
+    public async Task<IActionResult> TransferirProdutoAsync(Guid produtoId, Guid deEmpresaId, Guid paraEmpresaId, int quantidade)
+    {
+        var resultado = await _produtoService.TransferirProdutoAsync(produtoId, deEmpresaId, paraEmpresaId, quantidade);
+        if (!resultado)
+        {
+            return BadRequest("Erro ao transferir o produto.");
+        }
+        return Ok("Transferência realizada com sucesso.");
     }
 
 }

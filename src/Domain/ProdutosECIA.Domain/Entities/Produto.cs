@@ -6,8 +6,6 @@ public class Produto
     public string Nome { get; set; }
     public decimal PrecoCusto { get; set; }
     public decimal PrecoVenda { get; set; }
-    public int Quantidade { get; set; }
-    public Guid EmpresaId { get; set; }
 
-    public Empresa Empresa { get; set; }
+    public ICollection<EstoqueProduto> Estoques { get; set; }
 }

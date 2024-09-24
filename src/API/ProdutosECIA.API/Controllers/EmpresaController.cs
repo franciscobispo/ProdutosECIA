@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 
 namespace ProdutosECIA.API.Controllers;
 

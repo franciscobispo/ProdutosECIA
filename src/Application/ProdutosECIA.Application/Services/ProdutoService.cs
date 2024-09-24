@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 using ProdutosECIA.Domain.Entities;
 using ProdutosECIA.Infrastructure.Repositories.Interfaces;
 
@@ -9,11 +10,15 @@ namespace ProdutosECIA.Application.Services;
 public class ProdutoService : IProdutoService
 {
     private readonly IProdutoRepository _produtoRepository;
+    private readonly IEmpresaRepository _empresaRepository;
+    private readonly IEstoqueProdutoRepository _estoqueProdutoRepository;
     private readonly IMapper _mapper;
 
-    public ProdutoService(IProdutoRepository produtoRepository, IMapper mapper)
+    public ProdutoService(IProdutoRepository produtoRepository, IEstoqueProdutoRepository estoqueProdutoRepository, IEmpresaRepository empresaRepository, IMapper mapper)
     {
         _produtoRepository = produtoRepository;
+        _estoqueProdutoRepository = estoqueProdutoRepository;
+        _empresaRepository = empresaRepository;
         _mapper = mapper;
     }
 
@@ -57,46 +62,91 @@ public class ProdutoService : IProdutoService
 
     public async Task<bool> MovimentarProdutoAsync(Guid produtoId, MovimentacaoProdutoDto movimentacaoDto)
     {
+        // Verificar se o Produto existe
         var produto = await _produtoRepository.GetByIdAsync(produtoId);
-        if (produto == null) return false;
+        if (produto == null)
+        {
+            throw new ArgumentException("Produto não localizado");
+        }
+
+        // Verificar se a Empresa existe
+        var empresa = await _empresaRepository.GetByIdAsync(movimentacaoDto.EmpresaId);
+        if (empresa == null)
+        {
+            throw new ArgumentException("Empresa não localizada");
+        }
+
+        // Obtém o estoque do produto para a empresa especificada
+        var estoque = await _estoqueProdutoRepository.GetEstoqueProdutoAsync(produtoId, movimentacaoDto.EmpresaId);
+
+        if (estoque == null)
+        {
+            // Se o estoque não existir para esse produto e empresa, criar uma nova entrada na tabela EstoqueProduto
+            var novoEstoqueProduto = new EstoqueProduto
+            {
+                Id = Guid.NewGuid(),
+                ProdutoId = produtoId,
+                EmpresaId = movimentacaoDto.EmpresaId,
+                Quantidade = movimentacaoDto.Quantidade
+            };
+
+            // Adicionar ao repositório de estoque
+            await _estoqueProdutoRepository.AddAsync(novoEstoqueProduto);
+            return true;
+        }
 
         if (movimentacaoDto.Adicionar)
         {
-            produto.Quantidade += movimentacaoDto.Quantidade;
+            // Adiciona a quantidade solicitada ao estoque
+            estoque.Quantidade += movimentacaoDto.Quantidade;
         }
         else
         {
-            if (produto.Quantidade < movimentacaoDto.Quantidade)
+            // Verifica se há estoque suficiente antes de remover a quantidade
+            if (estoque.Quantidade < movimentacaoDto.Quantidade)
             {
-                return false; // Evitar que a quantidade fique negativa
+                // Evitar que a quantidade fique negativa
+                throw new ArgumentException("Não permitido adicionar uma quantidade que fará com que o estoqudo produto fique com valor negativo.");
             }
-            produto.Quantidade -= movimentacaoDto.Quantidade;
+
+            estoque.Quantidade -= movimentacaoDto.Quantidade;
         }
 
-        return await _produtoRepository.UpdateAsync(produto);
+        // Atualiza o estoque no repositório
+        return await _estoqueProdutoRepository.UpdateAsync(estoque);
     }
 
     public async Task<bool> MovimentarProdutosEmLoteAsync(MovimentacaoLoteDto movimentacaoLoteDto)
     {
-        foreach (var produtoId in movimentacaoLoteDto.ProdutoIds)
+        foreach (var item in movimentacaoLoteDto.Items)
         {
-            var produto = await _produtoRepository.GetByIdAsync(produtoId);
-            if (produto == null) return false;
+            // Obtém o estoque do produto para a empresa especificada
+            var estoque = await _estoqueProdutoRepository.GetEstoqueProdutoAsync(item.ProdutoId, item.EmpresaId);
 
-            if (movimentacaoLoteDto.Adicionar)
+            if (estoque == null)
             {
-                produto.Quantidade += movimentacaoLoteDto.Quantidade;
+                // Se o estoque não existir para esse produto e empresa, retornar falso
+                return false;
+            }
+
+            if (item.Adicionar)
+            {
+                // Adiciona a quantidade solicitada ao estoque
+                estoque.Quantidade += item.Quantidade;
             }
             else
             {
-                if (produto.Quantidade < movimentacaoLoteDto.Quantidade)
+                // Verifica se há estoque suficiente antes de remover a quantidade
+                if (estoque.Quantidade < item.Quantidade)
                 {
                     return false; // Evitar que a quantidade fique negativa
                 }
-                produto.Quantidade -= movimentacaoLoteDto.Quantidade;
+
+                estoque.Quantidade -= item.Quantidade;
             }
 
-            await _produtoRepository.UpdateAsync(produto);
+            // Atualiza o estoque no repositório
+            await _estoqueProdutoRepository.UpdateAsync(estoque);
         }
 
         return true;
@@ -104,18 +154,15 @@ public class ProdutoService : IProdutoService
 
     public async Task<decimal> ObterValorTotalEstoqueAsync()
     {
-        var produtos = await _produtoRepository.GetAllAsync();
-        if (produtos == null || !produtos.Any()) return 0;
-
-        return produtos.Sum(p => p.PrecoCusto * p.Quantidade);
+        var estoques = await _estoqueProdutoRepository.GetAllAsync(query => query.Include(e => e.Produto));
+        return estoques.Sum(e => e.Produto.PrecoCusto * e.Quantidade);
     }
 
-    public async Task<int> ObterQuantidadeTotalEstoqueAsync()
+    public async Task<int> ObterQuantidadeTotalProdutoAsync(Guid produtoId, Guid empresaId)
     {
-        var produtos = await _produtoRepository.GetAllAsync();
-        if (produtos == null || !produtos.Any()) return 0;
+        var estoque = await _estoqueProdutoRepository.GetEstoqueProdutoAsync(produtoId, empresaId);
 
-        return produtos.Sum(p => p.Quantidade);
+        return estoque?.Quantidade ?? 0;
     }
 
     public async Task<decimal> ObterCustoMedioProdutoAsync(Guid produtoId)
@@ -132,5 +179,33 @@ public class ProdutoService : IProdutoService
         if (produtos == null || !produtos.Any()) return 0;
 
         return produtos.Average(p => p.PrecoCusto);
+    }
+
+    public async Task<bool> TransferirProdutoAsync(Guid produtoId, Guid deEmpresaId, Guid paraEmpresaId, int quantidade)
+    {
+        // Validar que as empresas e o produto existem
+
+        // Remover do estoque da empresa de origem
+        var estoqueOrigem = await _estoqueProdutoRepository.GetByProdutoAndEmpresaAsync(produtoId, deEmpresaId);
+        if (estoqueOrigem == null || estoqueOrigem.Quantidade < quantidade) return false;
+
+        estoqueOrigem.Quantidade -= quantidade;
+        await _estoqueProdutoRepository.UpdateAsync(estoqueOrigem);
+
+        // Adicionar no estoque da empresa de destino
+        var estoqueDestino = await _estoqueProdutoRepository.GetByProdutoAndEmpresaAsync(produtoId, paraEmpresaId);
+        if (estoqueDestino == null)
+        {
+            // Se não existir, criar um novo
+            estoqueDestino = new EstoqueProduto { ProdutoId = produtoId, EmpresaId = paraEmpresaId, Quantidade = quantidade };
+            await _estoqueProdutoRepository.AddAsync(estoqueDestino);
+        }
+        else
+        {
+            estoqueDestino.Quantidade += quantidade;
+            await _estoqueProdutoRepository.UpdateAsync(estoqueDestino);
+        }
+
+        return true;
     }
 }

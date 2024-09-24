@@ -1,7 +1,7 @@
 ﻿using AutoMapper;
+using FluentAssertions;
 using Moq;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
 using ProdutosECIA.Application.Services;
 using ProdutosECIA.Domain.Entities;
 using ProdutosECIA.Infrastructure.Repositories.Interfaces;
@@ -11,8 +11,8 @@ namespace ProdutosECIA.Tests.Services;
 public class EmpresaServiceTests
 {
     private readonly Mock<IEmpresaRepository> _empresaRepositoryMock;
-    private readonly IEmpresaService _empresaService;
     private readonly Mock<IMapper> _mapperMock;
+    private readonly EmpresaService _empresaService;
 
     public EmpresaServiceTests()
     {
@@ -21,38 +21,37 @@ public class EmpresaServiceTests
         _empresaService = new EmpresaService(_empresaRepositoryMock.Object, _mapperMock.Object);
     }
 
+
     [Fact]
-    public async Task GetAllEmpresas_ShouldReturnListOfEmpresas_WhenProdutosExist()
+    public async Task GetAllAsync_ShouldReturnAllEmpresas()
     {
         // Arrange
-        var empresas = new List<Empresa>
-        {
-            new Empresa { Id = Guid.NewGuid(), Nome = "Empresa 1", CNPJ = "78.402.669/0001-05" },
-            new Empresa { Id = Guid.NewGuid(), Nome = "Empresa 2", CNPJ = "81.913.761/0001-36" }
-        };
+        var empresas = new List<Empresa> { new Empresa(), new Empresa() };
 
-        var empresasDto = empresas.Select(e => new EmpresaDto { Nome = e.Nome, CNPJ = e.CNPJ });
+        _empresaRepositoryMock
+            .Setup(repo => repo.GetAllAsync(It.IsAny<Func<IQueryable<Empresa>, IQueryable<Empresa>>>()))
+            .ReturnsAsync(empresas);
 
-        _empresaRepositoryMock.Setup(repo => repo.GetAllAsync()).ReturnsAsync(empresas);
+        var empresasDto = new List<EmpresaDto> { new EmpresaDto(), new EmpresaDto() };
         _mapperMock.Setup(m => m.Map<IEnumerable<EmpresaDto>>(empresas)).Returns(empresasDto);
 
         // Act
         var result = await _empresaService.GetAllAsync();
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Count());
-        _empresaRepositoryMock.Verify(repo => repo.GetAllAsync(), Times.Once);
-        _mapperMock.Verify(m => m.Map<IEnumerable<EmpresaDto>>(empresas), Times.Once);
+        result.Should().BeEquivalentTo(empresasDto);
+
+        _empresaRepositoryMock.Verify(repo => repo.GetAllAsync(It.IsAny<Func<IQueryable<Empresa>, IQueryable<Empresa>>>()), Times.Once);
     }
+
 
     [Fact]
     public async Task GetByIdAsync_ShouldReturnEmpresa_WhenEmpresaExists()
     {
         // Arrange
         var empresaId = Guid.NewGuid();
-        var empresa = new Empresa { Id = empresaId, Nome = "Empresa Teste", CNPJ = "78.402.669/0001-05" };
-        var empresaDto = new EmpresaDto { Id = empresaId, Nome = empresa.Nome, CNPJ = empresa.CNPJ };
+        var empresa = new Empresa { Id = empresaId };
+        var empresaDto = new EmpresaDto { Id = empresaId };
 
         _empresaRepositoryMock.Setup(repo => repo.GetByIdAsync(empresaId)).ReturnsAsync(empresa);
         _mapperMock.Setup(m => m.Map<EmpresaDto>(empresa)).Returns(empresaDto);
@@ -61,11 +60,8 @@ public class EmpresaServiceTests
         var result = await _empresaService.GetByIdAsync(empresaId);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(empresaId, result.Id);
-        Assert.Equal(empresa.Nome, result.Nome);
+        result.Should().BeEquivalentTo(empresaDto);
         _empresaRepositoryMock.Verify(repo => repo.GetByIdAsync(empresaId), Times.Once);
-        _mapperMock.Verify(m => m.Map<EmpresaDto>(empresa), Times.Once);
     }
 
     [Fact]
@@ -73,43 +69,43 @@ public class EmpresaServiceTests
     {
         // Arrange
         var empresaId = Guid.NewGuid();
-
         _empresaRepositoryMock.Setup(repo => repo.GetByIdAsync(empresaId)).ReturnsAsync((Empresa)null);
 
         // Act
         var result = await _empresaService.GetByIdAsync(empresaId);
 
         // Assert
-        Assert.Null(result);
+        result.Should().BeNull();
+        _empresaRepositoryMock.Verify(repo => repo.GetByIdAsync(empresaId), Times.Once);
     }
 
     [Fact]
-    public async Task CreateAsync_ShouldReturnEmpresaDto_WhenEmpresaIsCreated()
+    public async Task CreateAsync_ShouldReturnCreatedEmpresaDto()
     {
         // Arrange
-        var empresaCreateDto = new EmpresaCreateDto { Nome = "Nova Empresa" };
-        var empresa = new Empresa { Id = Guid.NewGuid(), Nome = "Nova Empresa" };
+        var empresaCreateDto = new EmpresaCreateDto { Nome = "Empresa Teste" };
+        var empresa = new Empresa { Nome = "Empresa Teste" };
+        var empresaDto = new EmpresaDto { Nome = "Empresa Teste" };
 
         _mapperMock.Setup(m => m.Map<Empresa>(empresaCreateDto)).Returns(empresa);
         _empresaRepositoryMock.Setup(repo => repo.AddAsync(empresa)).Returns(Task.CompletedTask);
-        _mapperMock.Setup(m => m.Map<EmpresaDto>(empresa)).Returns(new EmpresaDto { Id = empresa.Id, Nome = empresa.Nome });
+        _mapperMock.Setup(m => m.Map<EmpresaDto>(empresa)).Returns(empresaDto);
 
         // Act
         var result = await _empresaService.CreateAsync(empresaCreateDto);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(empresa.Id, result.Id);
+        result.Should().BeEquivalentTo(empresaDto);
         _empresaRepositoryMock.Verify(repo => repo.AddAsync(empresa), Times.Once);
     }
 
     [Fact]
-    public async Task UpdateAsync_ShouldUpdateEmpresa_WhenEmpresaExists()
+    public async Task UpdateAsync_ShouldReturnTrue_WhenEmpresaExists()
     {
         // Arrange
         var empresaId = Guid.NewGuid();
-        var empresa = new Empresa { Id = empresaId, Nome = "Empresa Antiga" };
         var empresaUpdateDto = new EmpresaUpdateDto { Nome = "Empresa Atualizada" };
+        var empresa = new Empresa { Id = empresaId };
 
         _empresaRepositoryMock.Setup(repo => repo.GetByIdAsync(empresaId)).ReturnsAsync(empresa);
         _empresaRepositoryMock.Setup(repo => repo.UpdateAsync(empresa)).ReturnsAsync(true);
@@ -118,8 +114,8 @@ public class EmpresaServiceTests
         var result = await _empresaService.UpdateAsync(empresaId, empresaUpdateDto);
 
         // Assert
-        Assert.True(result);
-        _mapperMock.Verify(m => m.Map(empresaUpdateDto, empresa), Times.Once);
+        result.Should().BeTrue();
+        _empresaRepositoryMock.Verify(repo => repo.UpdateAsync(empresa), Times.Once);
     }
 
     [Fact]
@@ -135,39 +131,38 @@ public class EmpresaServiceTests
         var result = await _empresaService.UpdateAsync(empresaId, empresaUpdateDto);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
+        _empresaRepositoryMock.Verify(repo => repo.GetByIdAsync(empresaId), Times.Once);
         _empresaRepositoryMock.Verify(repo => repo.UpdateAsync(It.IsAny<Empresa>()), Times.Never);
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldReturnTrue_WhenEmpresaDeleted()
+    public async Task DeleteAsync_ShouldReturnTrue_WhenEmpresaIsDeleted()
     {
         // Arrange
         var empresaId = Guid.NewGuid();
-
         _empresaRepositoryMock.Setup(repo => repo.DeleteAsync(empresaId)).ReturnsAsync(true);
 
         // Act
         var result = await _empresaService.DeleteAsync(empresaId);
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
         _empresaRepositoryMock.Verify(repo => repo.DeleteAsync(empresaId), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldReturnFalse_WhenEmpresaNotDeleted()
+    public async Task DeleteAsync_ShouldReturnFalse_WhenEmpresaDoesNotExist()
     {
         // Arrange
         var empresaId = Guid.NewGuid();
-
         _empresaRepositoryMock.Setup(repo => repo.DeleteAsync(empresaId)).ReturnsAsync(false);
 
         // Act
         var result = await _empresaService.DeleteAsync(empresaId);
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
         _empresaRepositoryMock.Verify(repo => repo.DeleteAsync(empresaId), Times.Once);
     }
 }

@@ -15,9 +15,16 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         _dbSet = _context.Set<T>();
     }
 
-    public async Task<IEnumerable<T>> GetAllAsync()
+    public async Task<IEnumerable<T>> GetAllAsync(Func<IQueryable<T>, IQueryable<T>> include = null)
     {
-        return await _dbSet.ToListAsync();
+        var query = _dbSet.AsQueryable();
+
+        if (include != null)
+        {
+            query = include(query);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<T> GetByIdAsync(Guid id)

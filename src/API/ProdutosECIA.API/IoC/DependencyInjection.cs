@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
 using FluentValidation.AspNetCore;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 using ProdutosECIA.Application.Validators;
 using ProdutosECIA.Infrastructure.Repositories.Interfaces;
 

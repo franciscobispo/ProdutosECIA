@@ -2,7 +2,7 @@
 using Moq;
 using ProdutosECIA.API.Controllers;
 using ProdutosECIA.Application.DTOs;
-using ProdutosECIA.Application.Interfaces;
+using ProdutosECIA.Application.Services.Interfaces;
 
 namespace ProdutosECIA.Tests.Controllers;
 
